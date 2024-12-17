@@ -1,0 +1,108 @@
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: custom-proxy-config
+spec:
+  logging:
+    level:
+      default: info
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        container:
+          volumeMounts:
+          - mountPath: /var/run/envoy-uds
+            name: ext-auth-uds
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              template:
+                spec:
+                  containers:
+                  - name: envoy
+                    volumeMounts:
+                    - mountPath: /var/run/envoy-uds
+                      name: ext-auth-uds
+                  - name: grpc-ext-auth
+                    command:
+                    - /grpc-ext-auth
+                    image: ghcr.io/tetratelabs/teg-ext-auth-poc:latest
+                    imagePullPolicy: IfNotPresent
+                    volumeMounts:
+                    - mountPath: /var/run/envoy-uds
+                      name: ext-auth-uds
+                    readinessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8080
+
+        pod:
+          volumes:
+          - emptyDir: {}
+            name: ext-auth-uds
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-gateway-config
+  namespace: envoy-gateway-system
+data:
+  envoy-gateway.yaml: |
+    apiVersion: gateway.envoyproxy.io/v1alpha1
+    kind: EnvoyGateway
+    extensionApis:
+      enableEnvoyPatchPolicy: true
+    gateway:
+      controllerName: gateway.envoyproxy.io/gatewayclass-controller
+    logging:
+      level:
+        default: info
+    provider:
+      kubernetes:
+        overwrite_control_plane_certs: false
+        rateLimitDeployment:
+          container:
+            env:
+            - name: LOG_FORMAT
+              value: json
+            - name: REDIS_HEALTH_CHECK_ACTIVE_CONNECTION
+              value: "false"
+            - name: REDIS_TYPE
+              value: SINGLE
+            - name: REDIS_TLS_CACERT
+              value: /redis-certs/ca.crt
+            image: docker.io/envoyproxy/ratelimit:49af5cca
+          patch:
+            type: StrategicMerge
+            value:
+              spec:
+                template:
+                  spec:
+                    containers:
+                    - imagePullPolicy: IfNotPresent
+                      name: envoy-ratelimit
+        shutdownManager:
+          image: docker.io/envoyproxy/gateway:v1.2.4
+      type: Kubernetes
+    rateLimit:
+      backend:
+        redis:
+          tls:
+            certificateRef:
+              name: redis-tls
+          url: teg-redis.envoy-gateway-system.svc.cluster.local:6379
+        type: Redis
+    extensionApis:
+      enableBackend: true
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: grpc-ext-auth
+spec:
+  endpoints:
+  - unix:
+      path: /var/run/envoy-uds/ext-auth.sock
