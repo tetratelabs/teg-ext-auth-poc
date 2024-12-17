@@ -1,0 +1,85 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-app-v1
+  labels:
+    app: backend-app-v1
+    service: backend-app-v1
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 3000
+  selector:
+    app: backend-app
+    version: v1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-app-v2
+  labels:
+    app: backend-app-v2
+    service: backend-app-v2
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 3000
+  selector:
+    app: backend-app
+    version: v2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-app-v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-app
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: backend-app
+        version: v1
+    spec:
+      containers:
+      - image: gcr.io/k8s-staging-gateway-api/echo-basic:v20231214-v1.0.0-140-gf544a46e
+        imagePullPolicy: IfNotPresent
+        name: backend-app
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-app-v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-app
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: backend-app
+        version: v2
+    spec:
+      containers:
+      - image: gcr.io/k8s-staging-gateway-api/echo-basic:v20231214-v1.0.0-140-gf544a46e
+        imagePullPolicy: IfNotPresent
+        name: backend-app
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
