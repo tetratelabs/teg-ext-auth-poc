@@ -12,7 +12,7 @@ The architecture of this POC is as follows:
 :user1","token2:user2", "token3:user3".
 * Backend: Two versions of a simple backend service that returns a simple response with the request headers and the service pod name.
 
-
+```
                                 ┌──────────────────────────────┐
                                 │                              │
                                 │                              │
@@ -50,6 +50,7 @@ curl $GATEWAY_HOST \             │   │                      │  │        
                                                                                  │                │
                                                                                  │                │
                                                                                  └────────────────┘
+```
 
 ## How to run
 
