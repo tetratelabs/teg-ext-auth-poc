@@ -48,7 +48,7 @@ spec:
     - backendRefs:
         - group: ""
           kind: Service
-          name: backend-app-v1
+          name: backend-app
           port: 8080
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
