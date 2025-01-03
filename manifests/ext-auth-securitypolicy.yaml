@@ -62,9 +62,10 @@ spec:
       name: ext-auth-poc
   extAuth:
     recomputeRoute: true
-    grpc:
+    http:
+      headersToBackend: ["x-current-user"]
       backendRefs:
-        - name: grpc-ext-auth
+        - name: ext-auth-svc
           kind: Backend
           group: gateway.envoyproxy.io
           port: 9002
