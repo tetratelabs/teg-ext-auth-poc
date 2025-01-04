@@ -15,30 +15,20 @@ spec:
           volumeMounts:
           - mountPath: /var/run/envoy-uds
             name: ext-auth-uds
-        patch:
-          type: StrategicMerge
-          value:
-            spec:
-              template:
-                spec:
-                  containers:
-                  - name: envoy
-                    volumeMounts:
-                    - mountPath: /var/run/envoy-uds
-                      name: ext-auth-uds
-                  - name: grpc-ext-auth
-                    command:
-                    - /grpc-ext-auth
-                    image: ghcr.io/tetratelabs/teg-ext-auth-poc:latest
-                    imagePullPolicy: IfNotPresent
-                    volumeMounts:
-                    - mountPath: /var/run/envoy-uds
-                      name: ext-auth-uds
-                    readinessProbe:
-                      httpGet:
-                        path: /healthz
-                        port: 8080
-
+        initContainers:
+        - name: ext-auth-svc
+          restartPolicy: Always
+          command:
+          - /ext-auth
+          image: ghcr.io/tetratelabs/teg-ext-auth-poc:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - mountPath: /var/run/envoy-uds
+            name: ext-auth-uds
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
         pod:
           volumes:
           - emptyDir: {}
@@ -101,7 +91,7 @@ data:
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: Backend
 metadata:
-  name: grpc-ext-auth
+  name: ext-auth-svc
 spec:
   endpoints:
   - unix:
