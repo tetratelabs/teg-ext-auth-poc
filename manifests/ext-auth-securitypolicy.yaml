@@ -68,4 +68,3 @@ spec:
         - name: ext-auth-svc
           kind: Backend
           group: gateway.envoyproxy.io
-          port: 9002
