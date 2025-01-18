@@ -62,12 +62,27 @@ curl $GATEWAY_HOST \             │   │                      │  │        
 kubectl apply -f manifests
 ```
 
+Wait for the pods to be ready:
+
+```bash
+kubectl wait --for=condition=Available --timeout=5m -n envoy-gateway-system \
+    deployment -l gateway.envoyproxy.io/owning-gateway-name=ext-auth-poc
+```
+
 3. Test the POC: Run the following commands to test the POC:
 
 Get the Gateway address:
 
 ```bash
 export GATEWAY_HOST=$(kubectl get gateway/ext-auth-poc -o jsonpath='{.status.addresses[0].value}')
+```
+
+You can also port-forward the Gateway to localhost if load balancer is not available:
+
+```bash
+export ENVOY_SERVICE=$(kubectl get svc -n envoy-gateway-system --selector=gateway.envoyproxy.io/owning-gateway-name=ext-auth-poc -o jsonpath='{.items[0].metadata.name}')
+kubectl -n envoy-gateway-system port-forward service/${ENVOY_SERVICE} 8080:80 &
+export GATEWAY_HOST=127.0.0.1:8080
 ```
 
 Curl the Gateway with the authorization header "Bearer token1", which is the bearer token for user1:
