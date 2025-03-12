@@ -56,6 +56,27 @@ curl $GATEWAY_HOST \             │   │                      │  │        
 
 1. Install TEG: Follow the instructions in the [teg documentation](https://docs.tetrate.io/envoy-gateway/installation/quickstart) to install TEG.
 
+Note: because the POC uses the `Backend` resource to connect to the UDS ext-auth service, you need to enable the `Backend` resource when installing TEG. To do this, run the following command:
+
+```bash
+cat <<EOF > teg-values.yaml
+gateway-helm:
+  config:
+    envoyGateway:
+      extensionApis:
+        enableBackend: true
+EOF
+```
+
+Then install TEG with the `teg-values.yaml` file:
+
+```bash
+helm install teg ${REGISTRY}/teg-envoy-gateway-helm \
+ --version ${CHART_VERSION} \
+ --values teg-values.yaml \
+ -n envoy-gateway-system --create-namespace
+```
+
 2. Install the POC: Run the following command to install the POC:
 
 ```bash
@@ -141,7 +162,7 @@ does not have a defined route for user3, and the request is routed to the defaul
 If you curl the Gateway with the authorization header "Bearer token4":
 
 ```bash
-curl -v $GATEWAY_HOST  -H "authorization : Bearer token4"
+curl -v $GATEWAY_HOST  -H "authorization: Bearer token4"
 ```
 
 In the response, you should see a 403 Forbidden response, as the Ext Auth service does not recognize the token.
