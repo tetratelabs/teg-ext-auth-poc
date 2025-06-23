@@ -1,0 +1,47 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyPatchPolicy
+metadata:
+  name: datadog-tracing-patch
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: ext-auth-poc
+  type: JSONPatch
+  jsonPatches:
+  - name: datadog-tracing-cluster
+    operation:
+      op: add
+      path: ""
+      value:
+        circuitBreakers:
+          thresholds:
+          - maxRetries: 1024
+        commonLbConfig:
+          localityWeightedLbConfig: {}
+        connectTimeout: 10s
+        dnsLookupFamily: V4_PREFERRED
+        dnsRefreshRate: 30s
+        lbPolicy: LEAST_REQUEST
+        loadAssignment:
+          clusterName: datadog-tracing
+          endpoints:
+          - lbEndpoints:
+            - endpoint:
+                address:
+                  pipe:
+                    path: /var/run/envoy-uds/apm.socket
+              loadBalancingWeight: 1
+            loadBalancingWeight: 1
+            locality:
+              region: datadog-tracing/backend/-1
+        name: datadog-tracing
+        perConnectionBufferLimitBytes: 32768
+        type: STATIC
+    type: type.googleapis.com/envoy.config.cluster.v3.Cluster
+  - name: default/ext-auth-poc/http
+    operation:
+      op: replace
+      path: /default_filter_chain/filters/0/typed_config/tracing/provider/typed_config/collector_cluster
+      value: datadog-tracing
+    type: type.googleapis.com/envoy.config.listener.v3.Listener
